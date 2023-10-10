@@ -41,7 +41,7 @@ my @logs = do {
         or die "failed to open file:$tempdir/access_log:$!";
     map { chomp $_; [split / /, $_] } <$fh>;
 };
-debug(join "\n", map { join " ", @$_ } @logs);
+# debug(join "\n", map { join " ", @$_ } @logs);
 
 cmp_ok scalar(grep { $_->[0] == 200 } @logs), "<", 500, "ignored most requests";
 cmp_ok $logs[-1][2], ">", 100000, "not stalled";
