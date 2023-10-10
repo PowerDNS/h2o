@@ -147,6 +147,7 @@ void h2o_context_dispose(h2o_context_t *ctx)
     h2o_timeout_dispose(ctx->loop, &ctx->http1.req_timeout);
     h2o_timeout_dispose(ctx->loop, &ctx->http2.idle_timeout);
     h2o_timeout_dispose(ctx->loop, &ctx->http2.graceful_shutdown_timeout);
+    h2o_timeout_dispose(ctx->loop, &ctx->http2.dos_delay_timeout);
     h2o_timeout_dispose(ctx->loop, &ctx->proxy.io_timeout);
     /* what should we do here? assert(!h2o_linklist_is_empty(&ctx->http2._conns); */
 
