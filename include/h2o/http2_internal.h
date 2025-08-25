@@ -179,9 +179,22 @@ struct st_h2o_http2_stream_t {
         h2o_linklist_t link;
         h2o_http2_scheduler_openref_t scheduler;
     } _refs;
+    /**
+     * if the stream was reset by peer sending an RST_STREAM
+     */
     unsigned reset_by_peer : 1;
-    h2o_send_state_t send_state; /* state of the ostream, only used in push mode */
+    /**
+     * if the stream was reset by peer's invalid action
+     */
+    unsigned reset_by_peer_action : 1;
+    /**
+     *  state of the ostream, only used in push mode
+     */
+    h2o_send_state_t send_state;
     /* placed at last since it is large and has it's own ctor */
+    /**
+     * request body (not available when `buf` is NULL
+     */
     h2o_req_t req;
 };
 
