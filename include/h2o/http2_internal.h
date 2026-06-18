@@ -61,6 +61,14 @@ typedef struct st_h2o_hpack_header_table_entry_t {
 #define H2O_HPACK_PARSE_HEADERS_PATH_EXISTS 4
 #define H2O_HPACK_PARSE_HEADERS_AUTHORITY_EXISTS 8
 
+#ifndef H2O_HPACK_MAX_HEADERS_HARD_LIMIT
+/**
+ * When the number of fields within a field section exceeds this value, the HPACK decoder raises a hard error that leads to closing
+ * the connection. H2O_MAX_HEADERS is the soft limit.
+ */
+#define H2O_HPACK_MAX_HEADERS_HARD_LIMIT 1000
+#endif
+
 void h2o_hpack_dispose_header_table(h2o_hpack_header_table_t *header_table);
 int h2o_hpack_parse_headers(h2o_req_t *req, h2o_hpack_header_table_t *header_table, const uint8_t *src, size_t len,
                             int *pseudo_header_exists_map, size_t *content_length, h2o_cache_digests_t **digests,
