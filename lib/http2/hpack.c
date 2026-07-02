@@ -87,6 +87,7 @@ static int contains_invalid_field_value_char(const char *s, size_t len)
 static const char *err_found_upper_case_in_header_name = "found an upper-case letter in header name";
 static const char *soft_err_found_invalid_char_in_header_name = "found an invalid character in header name";
 static const char *soft_err_found_invalid_char_in_header_value = "found an invalid character in header value";
+static const char h2o_hpack_err_headers_too_long[] = "headers too long";
 
 /* validate a header name against https://tools.ietf.org/html/rfc7230#section-3.2,
  * in addition to that, we disallow upper case chars as well.
@@ -488,6 +489,7 @@ int h2o_hpack_parse_headers(h2o_req_t *req, h2o_hpack_header_table_t *header_tab
                             const char **err_desc)
 {
     const uint8_t *src_end = src + len;
+    size_t num_headers_decoded = 0;
 
     *content_length = SIZE_MAX;
 
@@ -505,6 +507,11 @@ int h2o_hpack_parse_headers(h2o_req_t *req, h2o_hpack_header_table_t *header_tab
                 *err_desc = decode_err;
                 return ret;
             }
+        }
+        ++num_headers_decoded;
+        if (num_headers_decoded > H2O_HPACK_MAX_HEADERS_HARD_LIMIT) {
+          *err_desc = h2o_hpack_err_headers_too_long;
+          return H2O_HTTP2_ERROR_COMPRESSION;
         }
         if (r.name->base[0] == ':') {
             if (pseudo_header_exists_map != NULL) {
@@ -564,16 +571,24 @@ int h2o_hpack_parse_headers(h2o_req_t *req, h2o_hpack_header_table_t *header_tab
                         /* TODO cache the decoded result in HPACK, as well as delay the decoding of the digest until being used */
                         h2o_cache_digests_load_header(digests, r.value->base, r.value->len);
                     }
-                    h2o_add_header(&req->pool, &req->headers, token, NULL, r.value->base, r.value->len);
+                    if (req->headers.size < H2O_MAX_HEADERS) {
+                        h2o_add_header(&req->pool, &req->headers, token, NULL, r.value->base, r.value->len);
+                    } else if (*err_desc == NULL) {
+                        *err_desc = h2o_hpack_err_headers_too_long;
+                    }
                 }
             } else {
-                h2o_add_header_by_str(&req->pool, &req->headers, r.name->base, r.name->len, 0, NULL, r.value->base, r.value->len);
+                if (req->headers.size < H2O_MAX_HEADERS) {
+                    h2o_add_header_by_str(&req->pool, &req->headers, r.name->base, r.name->len, 0, NULL, r.value->base, r.value->len);
+                } else if (*err_desc == NULL) {
+                    *err_desc = h2o_hpack_err_headers_too_long;
+                }
             }
         }
     Next:;
     }
 
-    if (*err_desc) {
+    if (*err_desc != NULL) {
         return H2O_HTTP2_ERROR_INVALID_HEADER_CHAR;
     }
     return 0;
